@@ -1,5 +1,6 @@
 <script>
     import "./scss/main.scss";
+    import { onMount } from "svelte";
 
     import tooltip from "@/actions/tooltip";
     import Confirmation from "@/components/base/Confirmation.svelte";
@@ -15,12 +16,24 @@
     import Router, { link, replace } from "svelte-spa-router";
     import active from "svelte-spa-router/active";
     import routes from "./routes";
+    import { isPinVerified } from "@/stores/pin";
+    import { isDeveloperMode } from "@/stores/developerMode";
 
     let oldLocation = undefined;
 
     let showAppSidebar = false;
 
     let isTinyMCEPreloaded = false;
+
+    // Add state for current language
+    let currentLang = 'en';
+    let translateInitialized = false;
+
+    const languages = [
+        { code: 'en', name: 'English', icon: '🇺🇸' },
+        { code: 'fr', name: 'Français', icon: '🇫🇷' },
+        { code: 'ar', name: 'العربية', icon: '🇸🇦' }
+    ];
 
     $: if ($superuser?.id) {
         loadSettings();
@@ -65,7 +78,59 @@
 
     function logout() {
         ApiClient.logout();
+        $isPinVerified = false;
     }
+
+    function toggleDeveloperMode() {
+        if (!$isDeveloperMode) {
+            replace("/verify-pin");
+        }
+    }
+
+    function setCookie(name, value, days) {
+        let expires = "";
+        if (days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "") + expires + "; path=/";
+    }
+
+    function changeLanguage(langCode) {
+        setCookie('googtrans', `/en/${langCode}`, 1);
+        currentLang = langCode;
+        location.reload();
+    }
+
+    function initTranslate() {
+        if (!document.querySelector('script[src*="translate.google.com"]')) {
+            const script = document.createElement('script');
+            script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+            script.async = true;
+            document.body.appendChild(script);
+        }
+
+        window.googleTranslateElementInit = function() {
+            new window.google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'en,fr,ar',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+                autoDisplay: false
+            }, 'google_translate_element');
+            translateInitialized = true;
+        };
+    }
+
+    onMount(() => {
+        // Check if there's a language cookie already set
+        const match = document.cookie.match(/googtrans=\/en\/(\w{2})/);
+        if (match) {
+            currentLang = match[1];
+        }
+        
+        setTimeout(initTranslate, 1000);
+    });
 </script>
 
 <svelte:head>
@@ -103,26 +168,53 @@
                 >
                     <i class="ri-database-2-line" />
                 </a>
-                <a
-                    href="/logs"
-                    class="menu-item"
-                    aria-label="Logs"
-                    use:link
-                    use:active={{ path: "/logs/?.*", className: "current-route" }}
-                    use:tooltip={{ text: "Logs", position: "right" }}
-                >
-                    <i class="ri-line-chart-line" />
-                </a>
-                <a
-                    href="/settings"
-                    class="menu-item"
-                    aria-label="Settings"
-                    use:link
-                    use:active={{ path: "/settings/?.*", className: "current-route" }}
-                    use:tooltip={{ text: "Settings", position: "right" }}
-                >
-                    <i class="ri-tools-line" />
-                </a>
+
+                <div class="language-selector notranslate">
+                    <button
+                        type="button"
+                        class="menu-item"
+                        aria-label="Select Language"
+                        use:tooltip={{ text: "Change Language", position: "right" }}
+                    >
+                        <span class="lang-code">{currentLang.toUpperCase()}</span>
+                        <Toggler class="dropdown dropdown-right">
+                            {#each languages as lang}
+                                <button
+                                    type="button"
+                                    class="dropdown-item closable"
+                                    class:active={currentLang === lang.code}
+                                    on:click={() => changeLanguage(lang.code)}
+                                >
+                                    <!-- <span class="icon">{lang.icon}</span> -->
+                                    <span class="txt">{lang.name}</span>
+                                </button>
+                            {/each}
+                        </Toggler>
+                    </button>
+                </div>
+
+                {#if $isDeveloperMode}
+                    <a
+                        href="/logs"
+                        class="menu-item"
+                        aria-label="Logs"
+                        use:link
+                        use:active={{ path: "/logs/?.*", className: "current-route" }}
+                        use:tooltip={{ text: "Logs", position: "right" }}
+                    >
+                        <i class="ri-file-list-2-line" />
+                    </a>
+                    <a
+                        href="/settings"
+                        class="menu-item"
+                        aria-label="Settings"
+                        use:link
+                        use:active={{ path: "/settings/?.*", className: "current-route" }}
+                        use:tooltip={{ text: "Settings", position: "right" }}
+                    >
+                        <i class="ri-tools-line" />
+                    </a>
+                {/if}
             </nav>
 
             <div
@@ -176,10 +268,167 @@
     </div>
 {/if}
 
+<div id="google_translate_element" class="hidden" />
+
 <style>
     .current-superuser {
         padding: 10px;
         max-width: 200px;
         color: var(--txtHintColor);
+    }
+
+    .language-selector {
+        position: relative;
+    }
+
+    .dropdown {
+        min-width: 150px;
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .dropdown-item.active {
+        background: var(--baseAlt1Color);
+    }
+
+    .icon {
+        font-size: 1.2em;
+    }
+
+    .txt {
+        flex: 1;
+    }
+
+    :global(.goog-te-gadget) {
+        color: var(--txtHintColor) !important;
+        font-family: var(--baseFontFamily) !important;
+    }
+
+    :global(.goog-te-gadget-simple) {
+        background-color: var(--baseColor) !important;
+        border: 1px solid var(--baseAlt2Color) !important;
+        padding: 5px !important;
+        border-radius: var(--baseRadius) !important;
+        font-size: var(--baseFontSize) !important;
+    }
+
+    :global(.goog-te-menu-value) {
+        color: var(--txtPrimaryColor) !important;
+    }
+
+    :global(.goog-te-banner-frame) {
+        display: none !important;
+    }
+
+    :global(.goog-te-gadget img) {
+        display: none !important;
+    }
+
+    /* Add styles for the language button */
+    .menu-item i.ri-global-line {
+        font-size: 1.25rem;
+    }
+
+    button.menu-item {
+        all: unset;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        color: var(--txtHintColor);
+        transition: color var(--baseAnimationSpeed),
+                    background var(--baseAnimationSpeed);
+    }
+
+    button.menu-item:hover {
+        color: var(--txtPrimaryColor);
+        background: var(--baseAlt1Color);
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    /* Hide Google Translate elements */
+    :global(.goog-te-banner-frame) {
+        display: none !important;
+    }
+
+    :global(.goog-te-menu-value) {
+        display: none !important;
+    }
+
+    :global(.goog-te-gadget) {
+        height: 0;
+        overflow: hidden;
+    }
+
+    :global(.VIpgJd-ZVi9od-l4eHX-hSRGPd) {
+        display: none !important;
+    }
+
+    /* Hide the top bar */
+    :global(body > .skiptranslate) {
+        display: none !important;
+    }
+
+    /* Remove the space added to the top of the page */
+    :global(body) {
+        top: 0 !important;
+    }
+
+    /* Hide other Google Translate elements but keep functionality */
+    :global(.goog-tooltip) {
+        display: none !important;
+    }
+
+    :global(.goog-tooltip:hover) {
+        display: none !important;
+    }
+
+    :global(.goog-text-highlight) {
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .lang-code {
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+
+    .menu-item {
+        width: auto !important;
+        padding: 0 12px !important;
+    }
+
+    .dropdown {
+        min-width: 150px;
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .dropdown-item.active {
+        background: var(--baseAlt1Color);
+    }
+
+    .icon {
+        font-size: 1.2em;
+    }
+
+    .txt {
+        flex: 1;
     }
 </style>

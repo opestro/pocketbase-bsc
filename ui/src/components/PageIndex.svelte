@@ -11,4 +11,11 @@
             ApiClient.logout();
         }
     }
+
+    // Add RTL support for Arabic
+    $: {
+        const htmlElement = document.documentElement;
+        const currentLang = document.documentElement.lang || 'en';
+        htmlElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+    }
 </script>

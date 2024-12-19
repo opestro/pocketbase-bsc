@@ -21,6 +21,9 @@
         isCollectionsLoading,
         loadCollections,
     } from "@/stores/collections";
+    import DeveloperAction from "@/components/base/DeveloperAction.svelte";
+    import { isDeveloperMode } from "@/stores/developerMode";
+    import { replace } from "svelte-spa-router";
 
     const initialQueryParams = new URLSearchParams($querystring);
 
@@ -137,7 +140,35 @@
 
         CommonHelper.replaceHashQueryParams(queryParams);
     }
+
+    // Add RTL support
+    $: isRTL = document.documentElement.dir === 'rtl';
 </script>
+
+<style>
+    /* Add RTL support for the layout */
+    :global([dir="rtl"]) .page-header {
+        flex-direction: row-reverse;
+    }
+
+    :global([dir="rtl"]) .breadcrumbs {
+        flex-direction: row-reverse;
+    }
+
+    :global([dir="rtl"]) .inline-flex {
+        flex-direction: row-reverse;
+    }
+
+    :global([dir="rtl"]) .gap-5 > * {
+        margin-left: 0;
+        margin-right: 5px;
+    }
+
+    :global([dir="rtl"]) .btn i {
+        margin-right: 0;
+        margin-left: 5px;
+    }
+</style>
 
 {#if $isCollectionsLoading && !$collections.length}
     <PageWrapper center>
@@ -156,14 +187,16 @@
                 <h1 class="m-b-10">You don't have any collections yet.</h1>
             {:else}
                 <h1 class="m-b-10">Create your first collection to add records!</h1>
-                <button
-                    type="button"
-                    class="btn btn-expanded-lg btn-lg"
-                    on:click={() => collectionUpsertPanel?.show()}
-                >
-                    <i class="ri-add-line" />
-                    <span class="txt">Create new collection</span>
-                </button>
+                <DeveloperAction>
+                    <button
+                        type="button"
+                        class="btn btn-expanded-lg btn-lg"
+                        on:click={() => collectionUpsertPanel?.show()}
+                    >
+                        <i class="ri-add-line" />
+                        <span class="txt">Create new collection</span>
+                    </button>
+                </DeveloperAction>
             {/if}
         </div>
     </PageWrapper>
@@ -178,6 +211,23 @@
             </nav>
 
             <div class="inline-flex gap-5">
+                <button
+                    type="button"
+                    class="btn btn-circle"
+                    class:btn-success={$isDeveloperMode}
+                    use:tooltip={{
+                        text: $isDeveloperMode ? "Developer Mode Active" : "Enable Developer Mode",
+                        position: "bottom"
+                    }}
+                    on:click={() => {
+                        if (!$isDeveloperMode) {
+                            replace("/verify-pin");
+                        }
+                    }}
+                >
+                    <i class="ri-code-s-slash-line" />
+                </button>
+
                 {#if !$hideControls}
                     <button
                         type="button"
@@ -209,10 +259,12 @@
                 </button>
 
                 {#if $activeCollection.type !== "view"}
-                    <button type="button" class="btn btn-expanded" on:click={() => recordUpsertPanel?.show()}>
-                        <i class="ri-add-line" />
-                        <span class="txt">New record</span>
-                    </button>
+                    <DeveloperAction>
+                        <button type="button" class="btn btn-expanded" on:click={() => recordUpsertPanel?.show()}>
+                            <i class="ri-add-line" />
+                            <span class="txt">New record</span>
+                        </button>
+                    </DeveloperAction>
                 {/if}
             </div>
         </header>
@@ -230,6 +282,7 @@
             collection={$activeCollection}
             bind:filter
             bind:sort
+            class="notranslate"
             on:select={(e) => {
                 updateQueryParams({
                     recordId: e.detail.id,

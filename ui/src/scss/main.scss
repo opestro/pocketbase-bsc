@@ -47,3 +47,13 @@
 @import 'collections_export';
 
 @import 'rate_limit';
+
+/* Add this to your existing styles */
+.notranslate {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}

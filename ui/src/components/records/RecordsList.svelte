@@ -329,11 +329,11 @@
         {/if}
     </svelte:fragment>
 
-    <table class="table" class:table-loading={isLoading}>
+    <table class="table " class:table-loading={isLoading}>
         <thead>
             <tr>
                 {#if !isView}
-                    <th class="bulk-select-col min-width">
+                    <th class="bulk-select-col min-width ">
                         {#if isLoading}
                             <span class="loader loader-sm" />
                         {:else}
@@ -353,7 +353,7 @@
 
                 {#each visibleFields as field (field.id)}
                     <SortHeader
-                        class="col-type-{field.type} col-field-{field.name}"
+                        class="col-type-{field.type}  col-field-{field.name}"
                         name={field.name}
                         bind:sort
                     >
@@ -382,7 +382,7 @@
                 </th>
             </tr>
         </thead>
-        <tbody>
+        <tbody class="notranslate">
             {#each records as record (!isView ? record.id : record)}
                 <tr
                     tabindex="0"

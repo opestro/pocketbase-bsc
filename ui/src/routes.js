@@ -11,6 +11,9 @@ import PageSuperuserLogin from "@/components/superusers/PageSuperuserLogin.svelt
 import ApiClient from "@/utils/ApiClient";
 import { isTokenExpired } from "pocketbase";
 import { wrap } from "svelte-spa-router/wrap";
+import { isPinVerified } from "@/stores/pin";
+import PinVerification from "@/components/base/PinVerification.svelte";
+import { get } from "svelte/store";
 
 const routes = {
     "/pbinstal/:token": wrap({
@@ -47,13 +50,19 @@ const routes = {
 
     "/logs": wrap({
         component: PageLogs,
-        conditions: [(_) => ApiClient.authStore.isValid],
+        conditions: [
+            (_) => ApiClient.authStore.isValid,
+            (_) => get(isPinVerified)
+        ],
         userData: { showAppSidebar: true },
     }),
 
     "/settings": wrap({
         component: PageApplication,
-        conditions: [(_) => ApiClient.authStore.isValid],
+        conditions: [
+            (_) => ApiClient.authStore.isValid,
+            (_) => get(isPinVerified)
+        ],
         userData: { showAppSidebar: true },
     }),
 
@@ -128,6 +137,13 @@ const routes = {
 
     "/auth/oauth2-redirect-failure": wrap({
         asyncComponent: () => import("@/components/records/PageOAuth2RedirectFailure.svelte"),
+        userData: { showAppSidebar: false },
+    }),
+
+    // Add a new route for PIN verification
+    "/verify-pin": wrap({
+        component: PinVerification,
+        conditions: [(_) => ApiClient.authStore.isValid],
         userData: { showAppSidebar: false },
     }),
 
