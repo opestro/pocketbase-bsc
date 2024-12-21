@@ -150,7 +150,7 @@
         <aside class="app-sidebar">
             <a href="/" class="logo logo-sm" use:link>
                 <img
-                    src="{import.meta.env.BASE_URL}images/logo.svg"
+                    src="{import.meta.env.BASE_URL}images/logo.webp"
                     alt="PocketBase logo"
                     width="40"
                     height="40"
